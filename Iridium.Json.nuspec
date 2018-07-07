@@ -1,20 +1,18 @@
 <?xml version="1.0"?>
 <package>
-<metadata minClientVersion="2.8.1">
+<metadata>
     <id>iridium.json</id>
-    <version>2.0.0</version>
-    <title>iridium.json</title>
+    <version>2.0.1.7071</version>
     <authors>Philippe Leybaert</authors>
     <owners>Philippe Leybaert</owners>
     <licenseUrl>https://raw.githubusercontent.com/activa/iridium-json/master/LICENSE</licenseUrl>
     <projectUrl>http://github.com/activa/iridium-json</projectUrl>
-    <iconUrl>http://dstyler.com/vici/32x32/im-_IconPlain100-w32-h32.png</iconUrl>
+    <iconUrl>http://www.iridiumdb.com/img/IconPlain64.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Compact and ultra high performance portable JSON library for .NET</description>
-    <language>en-US</language>
     <tags>iridium json</tags>
     <dependencies>
-      <dependency id="iridium.reflection" version="2.0.0.7041" />
+      <dependency id="iridium.reflection" version="2.0.1.7071" />
     </dependencies>
   </metadata>
   <files>

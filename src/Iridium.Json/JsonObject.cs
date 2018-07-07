@@ -32,7 +32,7 @@ using Iridium.Reflection;
 
 namespace Iridium.Json
 {
-    public class JsonObject : IEnumerable<JsonObject>
+    public class JsonObject : IEnumerable<JsonObject> , IDynamicObject
     {
         private object _value;
         private JsonObjectType _type;
@@ -356,6 +356,61 @@ namespace Iridium.Json
         public void Add(string key, JsonObject value)
         {
             this[key] = value;
+        }
+
+        public bool TryGetValue(out object value, out Type type)
+        {
+            if (IsUndefined)
+            {
+                value = null;
+                type = null;
+                return false;
+            }
+
+            value = Value;
+            type = value == null ? typeof(object) : value.GetType();
+
+            return true;
+        }
+
+        public bool TryGetValue(string key, out object value, out Type type)
+        {
+            type = typeof(JsonObject);
+
+            if (IsObject)
+            {
+                if (AsDictionary().TryGetValue(key, out var obj))
+                {
+                    value = obj;
+
+                    return true;
+                }
+            }
+
+            value = null;
+
+            return false;
+        }
+
+        public bool TryGetValue(int index, out object value, out Type type)
+        {
+            type = typeof(JsonObject);
+
+            if (IsArray)
+            {
+                var array = AsArray();
+
+                if (index >= 0 && index < array.Length)
+                {
+                    value = array[index];
+
+                    return true;
+                }
+            }
+
+            value = null;
+
+            return false;
         }
 
         private JsonObject FindNode(int index, bool createIfNotExists)

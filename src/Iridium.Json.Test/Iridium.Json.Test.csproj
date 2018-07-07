@@ -39,6 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="JsonBuilderFixture.cs" />
+    <Compile Include="JsonDynamicObjectTests.cs" />
     <Compile Include="JSONParserFixture.cs" />
     <Compile Include="JsonParserPerformanceTestFixture.cs" />
     <Compile Include="JsonParseToTypeFixture.cs" />
