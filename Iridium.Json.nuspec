@@ -2,7 +2,7 @@
 <package>
 <metadata>
     <id>iridium.json</id>
-    <version>2.0.2.7121</version>
+    <version>2.0.3.0</version>
     <authors>Philippe Leybaert</authors>
     <owners>Philippe Leybaert</owners>
     <licenseUrl>https://raw.githubusercontent.com/activa/iridium-json/master/LICENSE</licenseUrl>
