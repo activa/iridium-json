@@ -50,12 +50,12 @@ namespace Iridium.Json
         private readonly JsonDateFormat _dateFormat;
         private readonly Stack<object> _circularStack = new Stack<object>();
 
-        public JsonSerializer()
+        private JsonSerializer()
         {
             _dateFormat = JsonDateFormat.UtcISO;
         }
 
-        public JsonSerializer(JsonDateFormat dateFormat)
+        private JsonSerializer(JsonDateFormat dateFormat)
         {
             _dateFormat = dateFormat;
         }
@@ -154,12 +154,23 @@ namespace Iridium.Json
                     if (sep)
                         _output.Append(',');
 
-                    WritePair(field, jsonObject[field]);
+                    if (jsonObject.AsDictionary().TryGetValue(field, out var value))
+                    {
+                        WritePair(field, value);
+                    }
+                    else
+                    {
+                        WritePair(field,null);
+                    }
 
                     sep = true;
                 }
 
                 _output.Append('}');
+            }
+            else
+            {
+                WriteValue(null);
             }
         }
 
@@ -176,8 +187,6 @@ namespace Iridium.Json
             _output.Append('{');
 
             bool pendingSeparator = false;
-
-            
 
             foreach (var fieldInfo in obj.GetType().Inspector().GetFieldsAndProperties(BindingFlags.Instance | BindingFlags.Public))
             {
@@ -210,16 +219,16 @@ namespace Iridium.Json
         {
             _output.Append('[');
 
-            bool pendingSeperator = false;
+            bool pendingSeparator = false;
 
             foreach (object obj in array)
             {
-                if (pendingSeperator)
+                if (pendingSeparator)
                     _output.Append(',');
 
                 WriteValue(obj);
 
-                pendingSeperator = true;
+                pendingSeparator = true;
             }
 
             _output.Append(']');
@@ -233,12 +242,15 @@ namespace Iridium.Json
 
             foreach (DictionaryEntry entry in dic)
             {
-                if (pendingSeparator)
-                    _output.Append(',');
+                if (entry.Key is string key)
+                {
+                    if (pendingSeparator)
+                        _output.Append(',');
 
-                WritePair(entry.Key.ToString(), entry.Value);
+                    WritePair(key, entry.Value);
 
-                pendingSeparator = true;
+                    pendingSeparator = true;
+                }
             }
 
             _output.Append('}');

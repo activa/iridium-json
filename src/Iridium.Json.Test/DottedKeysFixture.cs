@@ -24,34 +24,23 @@
 //=============================================================================
 #endregion
 
-namespace Iridium.Json
+using NUnit.Framework;
+
+namespace Iridium.Json.Test
 {
-    internal class JsonToken
+    [TestFixture]
+    public class DottedKeysFixture
     {
-        public JsonTokenType Type { get; }
-        public string Token { get; }
+        private string _testJson = "{\"key1.key2\":\"x\"}";
 
-        public JsonToken(JsonTokenType type, string token)
+        [Test]
+        public void TestParse()
         {
-            Type = type;
-            Token = token;
-        }
+            var json = JsonParser.Parse(_testJson);
 
-        public JsonToken(JsonTokenType type)
-        {
-            Type = type;
-            Token = null;
-        }
+            var jsonText = JsonSerializer.ToJson(json);
 
-        public static JsonToken Colon = new JsonToken(JsonTokenType.Colon);
-        public static JsonToken Comma = new JsonToken(JsonTokenType.Comma);
-        public static JsonToken ObjectStart = new JsonToken(JsonTokenType.ObjectStart);
-        public static JsonToken ObjectEnd = new JsonToken(JsonTokenType.ObjectEnd);
-        public static JsonToken ArrayStart = new JsonToken(JsonTokenType.ArrayStart);
-        public static JsonToken ArrayEnd = new JsonToken(JsonTokenType.ArrayEnd);
-        public static JsonToken Eof = new JsonToken(JsonTokenType.EOF);
-        public static JsonToken True = new JsonToken(JsonTokenType.True);
-        public static JsonToken False = new JsonToken(JsonTokenType.False);
-        public static JsonToken Null = new JsonToken(JsonTokenType.Null);
+            var json2 = JsonParser.Parse(jsonText);
+        }
     }
 }

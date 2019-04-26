@@ -26,7 +26,7 @@
 
 namespace Iridium.Json
 {
-    public enum JsonObjectType
+    internal enum JsonObjectType
     {
         Value,
         Array,

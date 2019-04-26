@@ -2,7 +2,7 @@
 //=============================================================================
 // Iridium-Core - Portable .NET Productivity Library 
 //
-// Copyright (c) 2008-2017 Philippe Leybaert
+// Copyright (c) 2008-2019 Philippe Leybaert
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy 
 // of this software and associated documentation files (the "Software"), to deal 
@@ -26,32 +26,14 @@
 
 namespace Iridium.Json
 {
-    internal class JsonToken
+    public class JsonParentInfo
     {
-        public JsonTokenType Type { get; }
-        public string Token { get; }
+        public JsonParentInfo(JsonObject parent) => ParentObject = parent;
+        public JsonParentInfo(JsonObject parent, string key) : this(parent) => ParentKey = key;
+        public JsonParentInfo(JsonObject parent, int index) : this(parent) => ParentIndex = index;
 
-        public JsonToken(JsonTokenType type, string token)
-        {
-            Type = type;
-            Token = token;
-        }
-
-        public JsonToken(JsonTokenType type)
-        {
-            Type = type;
-            Token = null;
-        }
-
-        public static JsonToken Colon = new JsonToken(JsonTokenType.Colon);
-        public static JsonToken Comma = new JsonToken(JsonTokenType.Comma);
-        public static JsonToken ObjectStart = new JsonToken(JsonTokenType.ObjectStart);
-        public static JsonToken ObjectEnd = new JsonToken(JsonTokenType.ObjectEnd);
-        public static JsonToken ArrayStart = new JsonToken(JsonTokenType.ArrayStart);
-        public static JsonToken ArrayEnd = new JsonToken(JsonTokenType.ArrayEnd);
-        public static JsonToken Eof = new JsonToken(JsonTokenType.EOF);
-        public static JsonToken True = new JsonToken(JsonTokenType.True);
-        public static JsonToken False = new JsonToken(JsonTokenType.False);
-        public static JsonToken Null = new JsonToken(JsonTokenType.Null);
+        public JsonObject ParentObject { get; set; }
+        public string ParentKey { get; set; }
+        public int? ParentIndex { get; set; }
     }
 }

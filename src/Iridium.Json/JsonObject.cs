@@ -27,6 +27,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Iridium.Reflection;
 
@@ -37,10 +38,11 @@ namespace Iridium.Json
         private object _value;
         private JsonObjectType _type;
 
-        private JsonObject(object value)
+        public JsonParentInfo ParentInfo { get; internal set; }
+
+        public JsonObject(object valueOrObject)
         {
-            _value = value;
-            _type = JsonObjectType.Value;
+            Set(FromObject(valueOrObject, null));
         }
 
         private JsonObject(IEnumerable<JsonObject> array)
@@ -55,12 +57,15 @@ namespace Iridium.Json
             _type = JsonObjectType.Object;
         }
 
-        private JsonObject(JsonObjectType type)
+        private JsonObject(JsonObjectType type, object value = null)
         {
             _type = type;
 
             switch (type)
             {
+                case JsonObjectType.Value:
+                    _value = value;
+                    break;
                 case JsonObjectType.Array:
                     _value = new JsonObject[0];
                     break;
@@ -87,16 +92,88 @@ namespace Iridium.Json
         public bool IsNullOrEmpty => _value == null;
         public bool IsNullOrUndefined => _value == null;
         public object Value => IsValue ? _value : null;
-
+        
         public static JsonObject Undefined() => new JsonObject();
         public static JsonObject EmptyObject() => new JsonObject(JsonObjectType.Object);
         public static JsonObject EmptyArray() => new JsonObject(JsonObjectType.Array);
-        
-        internal static JsonObject FromValue(object value) => new JsonObject(value);
-        internal static JsonObject FromArray(IEnumerable<JsonObject> array) => new JsonObject(array);
-        internal static JsonObject FromObject(Dictionary<string,JsonObject> obj) => new JsonObject(obj);
+        public static JsonObject Null() => FromValue(null);
 
-        private static readonly HashSet<Type> _simpleTypes = new HashSet<Type>(new[] { typeof(string),typeof(int),typeof(int?),typeof(uint),typeof(uint?),typeof(char),typeof(char?),typeof(long),typeof(long?),typeof(ulong),typeof(ulong?),typeof(decimal),typeof(decimal?),typeof(double),typeof(double?),typeof(float),typeof(float?),typeof(bool),typeof(bool?) });
+        internal static JsonObject FromValue(object value) => new JsonObject(JsonObjectType.Value, value);
+        internal static JsonObject FromArray(IEnumerable<JsonObject> array) => new JsonObject(array);
+        internal static JsonObject FromDictionary(Dictionary<string,JsonObject> dictionary) => new JsonObject(dictionary);
+
+        private static readonly HashSet<Type> _simpleTypes = new HashSet<Type>(new[] { typeof(string),typeof(int),typeof(int?),typeof(uint),typeof(uint?),typeof(char),typeof(char?),typeof(byte),typeof(byte?),typeof(sbyte),typeof(sbyte?),typeof(short),typeof(short?),typeof(ushort),typeof(ushort?),typeof(long),typeof(long?),typeof(ulong),typeof(ulong?),typeof(decimal),typeof(decimal?),typeof(double),typeof(double?),typeof(float),typeof(float?),typeof(bool),typeof(bool?) });
+
+        private static JsonObject FromObject(object obj, Stack<object> circularStack)
+        {
+            if (circularStack == null)
+                circularStack = new Stack<object>();
+
+            if (obj == null)
+                return Null();
+
+            if (obj is char || obj is Enum || obj is Guid)
+                return FromValue("" + obj);
+
+            if (obj is DateTime)
+                return FromValue(obj);
+
+            var type = obj.GetType();
+
+            if (_simpleTypes.Contains(type))
+                return FromValue(obj);
+
+            if (obj is JsonObject jsonObject)
+                return jsonObject.Clone();
+
+            if (circularStack.Any(o => ReferenceEquals(o,obj)))
+                return Null();
+
+            circularStack.Push(obj);
+
+            try
+            {
+                if (obj is IDictionary dictionary)
+                {
+                    var jObj = EmptyObject();
+
+                    foreach (DictionaryEntry entry in dictionary)
+                        if (entry.Key is string key)
+                            jObj.Add(key, FromObject(entry.Value, circularStack));
+
+                    return jObj;
+                }
+                
+                if (obj is ICollection collection)
+                    return FromArray(collection.OfType<object>().Select(o => FromObject(o, circularStack)));
+
+                var dic = obj.GetType().Inspector().GetFieldsAndProperties(BindingFlags.Instance | BindingFlags.Public).Where(f => f.CanRead).ToDictionary(f => f.Name, f => FromObject(f.GetValue(obj), circularStack));
+
+                return FromDictionary(dic);
+            }
+            finally
+            {
+                circularStack.Pop();
+            }
+        }
+
+        public JsonObject Clone()
+        {
+            switch (_type)
+            {
+                case JsonObjectType.Value:
+                    return FromValue(_value);
+
+                case JsonObjectType.Array:
+                    return FromArray(AsArray().Select(j => j.Clone()));
+
+                case JsonObjectType.Object:
+                    return FromDictionary(AsDictionary().ToDictionary(kv => kv.Key, kv => kv.Value.Clone()));
+ 
+                default:
+                    return Undefined();
+            }
+        }
 
         public object As(Type type)
         {
@@ -256,12 +333,15 @@ namespace Iridium.Json
 
         public static implicit operator JsonObject(Array arr)
         {
-            return FromArray(arr.Cast<object>().Select(o => (o is JsonObject jsonObject) ? jsonObject : FromValue(o)));
+            return FromArray(arr.Cast<object>().Select(o => (o is JsonObject jsonObject) ? jsonObject : new JsonObject(o)));
         }
 
         public JsonObject[] AsArray()
         {
-            return (JsonObject[]) _value;
+            if (!IsArray)
+                return new JsonObject[0];
+
+            return _value as JsonObject[];
         }
 
         public Array AsArray(Type elementType)
@@ -328,7 +408,7 @@ namespace Iridium.Json
 
         public Dictionary<string, JsonObject> AsDictionary()
         {
-            return (Dictionary<string, JsonObject>) _value;
+            return _value as Dictionary<string, JsonObject>;
         }
 
         public bool HasField(string field) => IsObject && AsDictionary().ContainsKey(field);
@@ -447,6 +527,9 @@ namespace Iridium.Json
 
         private JsonObject FindNode(string path, bool createIfNotExists)
         {
+            if (string.IsNullOrWhiteSpace(path))
+                return Undefined();
+
             int dotIndex = path.IndexOf('.');
             int bIndex = path.IndexOf('[');
 
@@ -566,11 +649,7 @@ namespace Iridium.Json
         
         public IEnumerator<JsonObject> GetEnumerator()
         {
-            if (IsObject)
-            {
-                return AsDictionary().Values.GetEnumerator();
-            }
-            else if (IsArray)
+            if (IsArray)
             {
                 return (from obj in AsArray() select obj).GetEnumerator();
             }

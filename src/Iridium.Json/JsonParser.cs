@@ -36,14 +36,14 @@ namespace Iridium.Json
 {
     public class JsonParser
     {
-        public static JsonObject Parse(string json)
+        public static JsonObject Parse(string json, bool trackParents = false)
         {
-            return new JsonParser(json)._Parse();
+            return new JsonParser(json, trackParents)._Parse();
         }
 
-        public static JsonObject Parse(Stream stream)
+        public static JsonObject Parse(Stream stream, bool trackParents = false)
         {
-            return new JsonParser(stream)._Parse();
+            return new JsonParser(stream, trackParents)._Parse();
         }
 
         public static T Parse<T>(string json) where T : class, new()
@@ -57,15 +57,19 @@ namespace Iridium.Json
         }
 
         private readonly JsonTokenizer _tokenizer;
+        private readonly bool _trackParents = false;
+        private JsonToken _currentToken;
 
-        public JsonParser(string s)
+        public JsonParser(string s, bool trackParents = false)
         {
             _tokenizer = new JsonTokenizer(s);
+            _trackParents = trackParents;
         }
 
-        public JsonParser(Stream stream)
+        public JsonParser(Stream stream, bool trackParents = false)
         {
             _tokenizer = new JsonTokenizer(stream);
+            _trackParents = trackParents;
         }
 
         private T _Parse<T>() where T:class
@@ -79,8 +83,6 @@ namespace Iridium.Json
 
             return ParseValue();
         }
-
-        private JsonToken _currentToken;
 
         private void NextToken()
         {
@@ -124,15 +126,17 @@ namespace Iridium.Json
 
             NextToken(JsonTokenType.ObjectEnd);
 
-            return JsonObject.FromObject(obj);
-        }
+            var jsonObject = JsonObject.FromDictionary(obj);
 
-        private static bool IsArray(Type type)
-        {
-            return type != null && (
-                type.Inspector().ImplementsOrInherits<IList>() 
-                ||
-                type.Inspector().ImplementsOrInherits(typeof (IList<>)));
+            if (_trackParents)
+            {
+                foreach (var pair in obj)
+                {
+                    pair.Value.ParentInfo = new JsonParentInfo(jsonObject, pair.Key);
+                }
+            }
+
+            return jsonObject;
         }
 
         private JsonObject ParseValue()
@@ -230,7 +234,19 @@ namespace Iridium.Json
 
             NextToken(JsonTokenType.ArrayEnd);
 
-            return JsonObject.FromArray(list.ToArray());
+            var jsonArray = JsonObject.FromArray(list);
+
+            if (_trackParents)
+            {
+                var arr = jsonArray.AsArray();
+
+                for (var i = 0; i < arr.Length; i++)
+                {
+                    arr[i].ParentInfo = new JsonParentInfo(jsonArray, i);
+                }
+            }
+
+            return jsonArray;
         }
     }
 }

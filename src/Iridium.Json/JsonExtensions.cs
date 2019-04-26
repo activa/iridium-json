@@ -24,6 +24,8 @@
 //=============================================================================
 #endregion
 
+using System.IO;
+
 namespace Iridium.Json
 {
     public static class JsonExtensions
@@ -38,9 +40,20 @@ namespace Iridium.Json
             return JsonParser.Parse(s);
         }
 
+        public static JsonObject ParseJson(this Stream stream)
+        {
+            return JsonParser.Parse(stream);
+        }
+
         public static T ParseJson<T>(this string s) where T:class,new()
         {
             return JsonParser.Parse<T>(s);
         }
+
+        public static T ParseJson<T>(this Stream stream) where T:class,new()
+        {
+            return JsonParser.Parse<T>(stream);
+        }
+
     }
 }

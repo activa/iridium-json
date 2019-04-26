@@ -23,6 +23,7 @@
 //=============================================================================
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -73,6 +74,67 @@ namespace Iridium.Json.Test
             Assert.That((int)jsonObject["array"].Skip(1).FirstOrDefault(), Is.EqualTo(2));
             Assert.That((int)jsonObject["array"].Skip(2).FirstOrDefault(), Is.EqualTo(3));
         }
+
+        [Test]
+        public void AsList()
+        {
+            var json = @"{ ""array"" : [1,2,3] }";
+
+            var jsonObject = JsonParser.Parse(json);
+
+            var list = jsonObject["array"].AsList(typeof(int));
+
+            Assert.That(list, Is.TypeOf(typeof(List<int>)));
+
+            var typedList = (List<int>) list;
+
+            Assert.That(typedList, Is.EquivalentTo(new[] {1,2,3}));
+        }
+
+        [Test]
+        public void AsTypedList()
+        {
+            var json = @"{ ""array"" : [1,2,3] }";
+
+            var jsonObject = JsonParser.Parse(json);
+
+            var list = jsonObject["array"].AsList<int>();
+
+            Assert.That(list, Is.TypeOf(typeof(List<int>)));
+
+            var typedList = (List<int>) list;
+
+            Assert.That(typedList, Is.EquivalentTo(new[] {1,2,3}));
+        }
+
+        [Test]
+        public void AsEnumerable()
+        {
+            var json = @"{ ""array"" : [1,2,3] }";
+
+            var jsonObject = JsonParser.Parse(json);
+
+            var list = jsonObject["array"].AsEnumerable(typeof(int));
+
+            Assert.That(list, Is.AssignableTo<IEnumerable>());
+
+            Assert.That(list, Is.EquivalentTo(new[] {1,2,3}));
+        }
+
+        [Test]
+        public void AsTypedEnumerable()
+        {
+            var json = @"{ ""array"" : [1,2,3] }";
+
+            var jsonObject = JsonParser.Parse(json);
+
+            var list = jsonObject["array"].AsEnumerable<int>();
+
+            Assert.That(list, Is.AssignableTo<IEnumerable<int>>());
+
+            Assert.That(list, Is.EquivalentTo(new[] {1,2,3}));
+        }
+
 
         [Test]
         public void EnumerateArrayEmpty()
@@ -539,6 +601,49 @@ namespace Iridium.Json.Test
 
             Assert.That(json["x"].As<int>(), Is.EqualTo(1));
         }
+
+
+        [Test]
+        public void TestParentForObject()
+        {
+            string jsonText = @"{""x"":1}";
+
+            var json = JsonParser.Parse(jsonText, true);
+
+            Assert.That(json.ParentInfo, Is.Null);
+            Assert.That(json["x"].ParentInfo.ParentObject, Is.SameAs(json));
+            Assert.That(json["x"].ParentInfo.ParentKey, Is.EqualTo("x"));
+            Assert.That(json["x"].ParentInfo.ParentIndex, Is.Null);
+
+            json = JsonParser.Parse(jsonText, false);
+
+            Assert.That(json.ParentInfo, Is.Null);
+            Assert.That(json["x"].ParentInfo, Is.Null);
+        }
+
+        [Test]
+        public void TestParentForArray()
+        {
+            string jsonText = @"{""x"":[1,2,3]}";
+
+            var json = JsonParser.Parse(jsonText, true);
+            
+            Assert.That(json.ParentInfo, Is.Null);
+
+            var jX = json["x"];
+
+            Assert.That(jX.ParentInfo.ParentObject, Is.SameAs(json));
+            Assert.That(jX.ParentInfo.ParentKey, Is.EqualTo("x"));
+            Assert.That(jX.ParentInfo.ParentIndex, Is.Null);
+            
+            Assert.That(jX[0].ParentInfo.ParentObject, Is.SameAs(jX));
+            Assert.That(jX[0].ParentInfo.ParentIndex, Is.EqualTo(0));
+            Assert.That(jX[1].ParentInfo.ParentObject, Is.SameAs(jX));
+            Assert.That(jX[1].ParentInfo.ParentIndex, Is.EqualTo(1));
+            Assert.That(jX[2].ParentInfo.ParentObject, Is.SameAs(jX));
+            Assert.That(jX[2].ParentInfo.ParentIndex, Is.EqualTo(2));
+        }
+
 
         [TestCaseSource(nameof(DataTypesSource))]
         public void TestDataTypes(string json, Type type, object expectedResult)
