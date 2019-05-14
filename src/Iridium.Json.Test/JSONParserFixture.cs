@@ -603,46 +603,6 @@ namespace Iridium.Json.Test
         }
 
 
-        [Test]
-        public void TestParentForObject()
-        {
-            string jsonText = @"{""x"":1}";
-
-            var json = JsonParser.Parse(jsonText, true);
-
-            Assert.That(json.ParentInfo, Is.Null);
-            Assert.That(json["x"].ParentInfo.ParentObject, Is.SameAs(json));
-            Assert.That(json["x"].ParentInfo.ParentKey, Is.EqualTo("x"));
-            Assert.That(json["x"].ParentInfo.ParentIndex, Is.Null);
-
-            json = JsonParser.Parse(jsonText, false);
-
-            Assert.That(json.ParentInfo, Is.Null);
-            Assert.That(json["x"].ParentInfo, Is.Null);
-        }
-
-        [Test]
-        public void TestParentForArray()
-        {
-            string jsonText = @"{""x"":[1,2,3]}";
-
-            var json = JsonParser.Parse(jsonText, true);
-            
-            Assert.That(json.ParentInfo, Is.Null);
-
-            var jX = json["x"];
-
-            Assert.That(jX.ParentInfo.ParentObject, Is.SameAs(json));
-            Assert.That(jX.ParentInfo.ParentKey, Is.EqualTo("x"));
-            Assert.That(jX.ParentInfo.ParentIndex, Is.Null);
-            
-            Assert.That(jX[0].ParentInfo.ParentObject, Is.SameAs(jX));
-            Assert.That(jX[0].ParentInfo.ParentIndex, Is.EqualTo(0));
-            Assert.That(jX[1].ParentInfo.ParentObject, Is.SameAs(jX));
-            Assert.That(jX[1].ParentInfo.ParentIndex, Is.EqualTo(1));
-            Assert.That(jX[2].ParentInfo.ParentObject, Is.SameAs(jX));
-            Assert.That(jX[2].ParentInfo.ParentIndex, Is.EqualTo(2));
-        }
 
 
         [TestCaseSource(nameof(DataTypesSource))]

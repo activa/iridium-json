@@ -36,14 +36,14 @@ namespace Iridium.Json
 {
     public class JsonParser
     {
-        public static JsonObject Parse(string json, bool trackParents = false)
+        public static JsonObject Parse(string json, bool enableTracking = false)
         {
-            return new JsonParser(json, trackParents)._Parse();
+            return new JsonParser(json, enableTracking)._Parse();
         }
 
-        public static JsonObject Parse(Stream stream, bool trackParents = false)
+        public static JsonObject Parse(Stream stream, bool enableTracking = false)
         {
-            return new JsonParser(stream, trackParents)._Parse();
+            return new JsonParser(stream, enableTracking)._Parse();
         }
 
         public static T Parse<T>(string json) where T : class, new()
@@ -57,19 +57,19 @@ namespace Iridium.Json
         }
 
         private readonly JsonTokenizer _tokenizer;
-        private readonly bool _trackParents = false;
+        private readonly bool _enableTracking = false;
         private JsonToken _currentToken;
 
-        public JsonParser(string s, bool trackParents = false)
+        public JsonParser(string s, bool enableTracking = false)
         {
             _tokenizer = new JsonTokenizer(s);
-            _trackParents = trackParents;
+            _enableTracking = enableTracking;
         }
 
-        public JsonParser(Stream stream, bool trackParents = false)
+        public JsonParser(Stream stream, bool enableTracking = false)
         {
             _tokenizer = new JsonTokenizer(stream);
-            _trackParents = trackParents;
+            _enableTracking = enableTracking;
         }
 
         private T _Parse<T>() where T:class
@@ -81,7 +81,12 @@ namespace Iridium.Json
         {
             NextToken();
 
-            return ParseValue();
+            var obj = ParseValue();
+
+            if (_enableTracking)
+                obj.AddTracking();
+
+            return obj;
         }
 
         private void NextToken()
@@ -128,13 +133,15 @@ namespace Iridium.Json
 
             var jsonObject = JsonObject.FromDictionary(obj);
 
-            if (_trackParents)
+            /*
+            if (_enableTracking)
             {
                 foreach (var pair in obj)
                 {
                     pair.Value.ParentInfo = new JsonParentInfo(jsonObject, pair.Key);
                 }
             }
+            */
 
             return jsonObject;
         }
@@ -236,7 +243,8 @@ namespace Iridium.Json
 
             var jsonArray = JsonObject.FromArray(list);
 
-            if (_trackParents)
+            /*
+            if (_enableTracking)
             {
                 var arr = jsonArray.AsArray();
 
@@ -245,6 +253,7 @@ namespace Iridium.Json
                     arr[i].ParentInfo = new JsonParentInfo(jsonArray, i);
                 }
             }
+            */
 
             return jsonArray;
         }

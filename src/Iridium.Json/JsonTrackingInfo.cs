@@ -24,16 +24,52 @@
 //=============================================================================
 #endregion
 
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
 namespace Iridium.Json
 {
-    public class JsonParentInfo
+    public class JsonTrackingInfo
     {
-        public JsonParentInfo(JsonObject parent) => ParentObject = parent;
-        public JsonParentInfo(JsonObject parent, string key) : this(parent) => ParentKey = key;
-        public JsonParentInfo(JsonObject parent, int index) : this(parent) => ParentIndex = index;
+        public JsonTrackingInfo(JsonObject parent) => ParentObject = parent;
+        public JsonTrackingInfo(JsonObject parent, string key) : this(parent) => ParentKey = key;
+        public JsonTrackingInfo(JsonObject parent, int index) : this(parent) => ParentIndex = index;
 
         public JsonObject ParentObject { get; set; }
         public string ParentKey { get; set; }
         public int? ParentIndex { get; set; }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        internal void OnValueChanged()
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Value"));
+        }
+
+        internal string Key()
+        {
+            if (ParentObject == null)
+                return null;
+
+            var parentPath = ParentObject.Path;
+
+            if (ParentKey != null)
+            {
+                if (parentPath != null)
+                    return parentPath + "." + ParentKey;
+                else
+                    return ParentKey;
+            }
+
+            if (ParentIndex != null)
+            {
+                if (parentPath != null)
+                    return parentPath + "[" + ParentIndex + "]";
+                else
+                    return "[" + ParentIndex + "]";
+            }
+
+            return null;
+        }
     }
 }

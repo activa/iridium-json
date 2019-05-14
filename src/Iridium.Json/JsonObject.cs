@@ -27,18 +27,19 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Iridium.Reflection;
 
 namespace Iridium.Json
 {
-    public class JsonObject : IEnumerable<JsonObject> , IDynamicObject
+    public class JsonObject : IEnumerable<JsonObject> , IDynamicObject, INotifyPropertyChanged
     {
         private object _value;
         private JsonObjectType _type;
-
-        public JsonParentInfo ParentInfo { get; internal set; }
+        private JsonTrackingInfo _trackingInfo;
 
         public JsonObject(object valueOrObject)
         {
@@ -80,19 +81,17 @@ namespace Iridium.Json
             _type = JsonObjectType.Undefined;
         }
 
-        [Obsolete("IsEmpty has been renamed to IsUndefined")]
-        public bool IsEmpty => IsUndefined;
-
         public bool IsObject => _type == JsonObjectType.Object;
         public bool IsArray => _type == JsonObjectType.Array;
         public bool IsValue => _type == JsonObjectType.Value;
         public bool IsUndefined => _type == JsonObjectType.Undefined;
         public bool IsNull => _value == null && _type != JsonObjectType.Undefined;
-        [Obsolete("IsNullOrEmpty has been renamed to IsNullOrUndefined")]
-        public bool IsNullOrEmpty => _value == null;
         public bool IsNullOrUndefined => _value == null;
         public object Value => IsValue ? _value : null;
-        
+
+        public JsonTrackingInfo TrackingInfo => _trackingInfo;
+        public string Path => _trackingInfo?.Key();
+
         public static JsonObject Undefined() => new JsonObject();
         public static JsonObject EmptyObject() => new JsonObject(JsonObjectType.Object);
         public static JsonObject EmptyArray() => new JsonObject(JsonObjectType.Array);
@@ -419,6 +418,8 @@ namespace Iridium.Json
         {
             _value = o?._value;
             _type = o?._type ?? JsonObjectType.Undefined;
+
+            _trackingInfo?.OnValueChanged();
         }
 
         public JsonObject this[string path]
@@ -527,7 +528,7 @@ namespace Iridium.Json
 
         private JsonObject FindNode(string path, bool createIfNotExists)
         {
-            if (string.IsNullOrWhiteSpace(path))
+            if (string.IsNullOrEmpty(path))
                 return Undefined();
 
             int dotIndex = path.IndexOf('.');
@@ -646,7 +647,46 @@ namespace Iridium.Json
                     field.SetValue(obj, jsonField.Value.As(field.Type));
             }
         }
-        
+
+        public void AddTracking()
+        {
+            switch (_type)
+            {
+                case JsonObjectType.Array:
+                {
+                    var arr = AsArray();
+
+                    for (var i = 0; i < arr.Length; i++)
+                    {
+                        var o = arr[i];
+                        o._trackingInfo = new JsonTrackingInfo(this, i);
+
+                        o.AddTracking();
+                    }
+
+                    break;
+                }
+                    
+
+                case JsonObjectType.Object:
+                {
+                    foreach (var kvp in AsDictionary())
+                    {
+                        var o = kvp.Value;
+
+                        o._trackingInfo = new JsonTrackingInfo(this, kvp.Key);
+
+                        o.AddTracking();
+                    }
+
+                    break;
+                }
+            }
+
+            if (_trackingInfo == null)
+                _trackingInfo = new JsonTrackingInfo(null);
+        }
+
         public IEnumerator<JsonObject> GetEnumerator()
         {
             if (IsArray)
@@ -666,6 +706,20 @@ namespace Iridium.Json
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged
+        {
+            add
+            {
+                if (_trackingInfo != null) 
+                    _trackingInfo.PropertyChanged += value;
+            }
+            remove
+            {
+                if (_trackingInfo != null)
+                    _trackingInfo.PropertyChanged -= value;
+            }
         }
     }
 }
