@@ -680,7 +680,11 @@ namespace Iridium.Json
                     for (var i = 0; i < arr.Length; i++)
                     {
                         var o = arr[i];
-                        o._trackingInfo = new JsonTrackingInfo(this, i);
+
+                        if (o._trackingInfo == null)
+                            o._trackingInfo = new JsonTrackingInfo(this, i);
+                        else
+                            o._trackingInfo.Update(this,i);
 
                         o.AddTracking();
                     }
@@ -695,7 +699,10 @@ namespace Iridium.Json
                     {
                         var o = kvp.Value;
 
-                        o._trackingInfo = new JsonTrackingInfo(this, kvp.Key);
+                        if (o._trackingInfo == null)
+                            o._trackingInfo = new JsonTrackingInfo(this, kvp.Key);
+                        else
+                            o._trackingInfo.Update(this, kvp.Key);
 
                         o.AddTracking();
                     }

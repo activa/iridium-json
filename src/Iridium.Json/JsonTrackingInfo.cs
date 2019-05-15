@@ -35,9 +35,9 @@ namespace Iridium.Json
         public JsonTrackingInfo(JsonObject parent, string key) : this(parent) => ParentKey = key;
         public JsonTrackingInfo(JsonObject parent, int index) : this(parent) => ParentIndex = index;
 
-        public JsonObject ParentObject { get; set; }
-        public string ParentKey { get; set; }
-        public int? ParentIndex { get; set; }
+        public JsonObject ParentObject { get; private set; }
+        public string ParentKey { get; private set; }
+        public int? ParentIndex { get; private set; }
 
         public bool IsRoot => ParentObject == null;
 
@@ -94,5 +94,18 @@ namespace Iridium.Json
 
             return null;
         }
+
+        internal void Update(JsonObject parent, string key)
+        {
+            ParentObject = parent;
+            ParentKey = key;
+        }
+
+        internal void Update(JsonObject parent, int index)
+        {
+            ParentObject = parent;
+            ParentIndex = index;
+        }
+
     }
 }

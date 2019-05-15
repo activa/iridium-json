@@ -87,7 +87,27 @@ namespace Iridium.Json.Test
         {
             var json = CreateTestJson();
 
-            json["test[0].test1[0].test"] = "x";
+            List<JsonObject> notifications = new List<JsonObject>();
+
+            json.PropertyChanged += (sender, args) =>
+            {
+                notifications.Add((JsonObject)sender);
+            };
+
+            json["obj1.x"] = 2;
+
+            Assert.That(notifications.Count, Is.EqualTo(1));
+
+            int xChangeCount = 0;
+
+            json["obj1.x"].PropertyChanged += (sender, args) =>
+            {
+                xChangeCount++;
+            };
+            json["obj1.x"] = 3;
+
+            Assert.That(notifications.Count, Is.EqualTo(2));
+            Assert.That(xChangeCount, Is.EqualTo(1));
 
             ValidateTracking(json);
         }
