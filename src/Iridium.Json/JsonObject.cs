@@ -419,6 +419,9 @@ namespace Iridium.Json
             _value = o?._value;
             _type = o?._type ?? JsonObjectType.Undefined;
 
+            if (_trackingInfo != null)
+                AddTracking();
+
             _trackingInfo?.OnValueChanged(this);
         }
 
@@ -510,9 +513,14 @@ namespace Iridium.Json
                     Array.Resize(ref arr,index+1);
 
                     for (int i = originalLength; i <= index; i++)
+                    {
                         arr[i] = Undefined();
+                    }
 
                     _value = arr;
+
+                    if (_trackingInfo != null)
+                        AddTracking();
                 }
 
                 return arr[index];
@@ -565,7 +573,12 @@ namespace Iridium.Json
                     var dict = AsDictionary();
 
                     if (!dict.ContainsKey(firstKey))
+                    {
                         dict[firstKey] = Undefined();
+                    }
+
+                    if (_trackingInfo != null)
+                        AddTracking();
                 }
 
                 return this[firstKey].FindNode(path.Substring(nextIndex), createIfNotExists);
@@ -597,9 +610,14 @@ namespace Iridium.Json
                         Array.Resize(ref arr,index+1);
 
                         for (int i = oldLength; i <= index; i++)
+                        {
                             arr[i] = Undefined();
+                        }
 
                         _value = arr;
+
+                        if (_trackingInfo != null)
+                            AddTracking();
                     }
                 }
 
@@ -620,6 +638,9 @@ namespace Iridium.Json
                     Set(EmptyObject());
 
                 AsDictionary()[path] = returnValue;
+
+                if (_trackingInfo != null)
+                    AddTracking();
             }
 
             return returnValue;

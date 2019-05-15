@@ -63,7 +63,7 @@ namespace Iridium.Json
             var obj = ParentObject;
 
             while (obj.TrackingInfo.ParentObject != null)
-                obj = ParentObject.TrackingInfo.ParentObject;
+                obj = obj.TrackingInfo.ParentObject;
 
             return obj;
         }
