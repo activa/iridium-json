@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.Remoting.Channels;
 using NUnit.Framework;
 
 namespace Iridium.Json.Test
@@ -51,16 +52,30 @@ namespace Iridium.Json.Test
 
             HashSet<string> valuesTriggered = new HashSet<string>();
 
+            List<JsonObject> jsonChangedTriggers = new List<JsonObject>();
+
+            json.PropertyChanged += (sender, args) =>
+            {
+                jsonChangedTriggers.Add((JsonObject) sender);
+            };
+
             json["int1"].PropertyChanged += (sender, args) =>
             {
                 valuesTriggered.Add("int1");
             };
 
+
             Assert.That(valuesTriggered.Contains("int1"), Is.False);
+            Assert.That(jsonChangedTriggers.Count, Is.EqualTo(0));
 
             json["int1"] = 1;
 
             Assert.That(valuesTriggered.Contains("int1"), Is.True);
+            Assert.That(jsonChangedTriggers.Count, Is.EqualTo(1));
+            Assert.That(jsonChangedTriggers[0], Is.SameAs(json));
+            
+            Assert.That(json.FindRoot(), Is.SameAs(json));
+            Assert.That(json["int1"].FindRoot(), Is.SameAs(json));
         }
 
 

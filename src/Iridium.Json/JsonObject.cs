@@ -419,7 +419,7 @@ namespace Iridium.Json
             _value = o?._value;
             _type = o?._type ?? JsonObjectType.Undefined;
 
-            _trackingInfo?.OnValueChanged();
+            _trackingInfo?.OnValueChanged(this);
         }
 
         public JsonObject this[string path]
@@ -685,6 +685,16 @@ namespace Iridium.Json
 
             if (_trackingInfo == null)
                 _trackingInfo = new JsonTrackingInfo(null);
+        }
+
+        public JsonObject FindRoot()
+        {
+            if (TrackingInfo == null)
+                return null;
+
+            var root = TrackingInfo.FindRoot();
+
+            return root ?? this;
         }
 
         public IEnumerator<JsonObject> GetEnumerator()

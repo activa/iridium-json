@@ -39,12 +39,35 @@ namespace Iridium.Json
         public string ParentKey { get; set; }
         public int? ParentIndex { get; set; }
 
+        public bool IsRoot => ParentObject == null;
+
         public event PropertyChangedEventHandler PropertyChanged;
 
-        internal void OnValueChanged()
+        internal void OnValueChanged(JsonObject obj)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Value"));
+            PropertyChanged?.Invoke(obj, new PropertyChangedEventArgs("Value"));
+
+            if (obj.TrackingInfo.IsRoot)
+                return;
+
+            var root = obj.FindRoot();
+
+            root?.TrackingInfo.OnValueChanged(root);
         }
+
+        internal JsonObject FindRoot()
+        {
+            if (ParentObject == null)
+                return null;
+
+            var obj = ParentObject;
+
+            while (obj.TrackingInfo.ParentObject != null)
+                obj = ParentObject.TrackingInfo.ParentObject;
+
+            return obj;
+        }
+
 
         internal string Key()
         {
