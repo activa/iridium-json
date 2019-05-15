@@ -427,13 +427,13 @@ namespace Iridium.Json
 
         public JsonObject this[string path]
         {
-            get => FindNode(path, createIfNotExists:false);
+            get => FindNode(path, createIfNotExists:_trackingInfo != null);
             set => FindNode(path, createIfNotExists:true).Set(value);
         }
 
         public JsonObject this[int index]
         {
-            get => FindNode(index, createIfNotExists:false);
+            get => FindNode(index, createIfNotExists:_trackingInfo != null);
             set => FindNode(index, createIfNotExists:true).Set(value);
         }
 

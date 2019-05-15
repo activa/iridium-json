@@ -66,6 +66,23 @@ namespace Iridium.Json.Test
             Assert.AreEqual("{\"a\":1,\"b\":2}", JsonSerializer.ToJson(dic));
         }
 
+        [Test]
+        public void TestObjectWithUndefined()
+        {
+            var json = new JsonObject(new { x = 1});
+
+            Assert.AreEqual("{\"x\":1}", json.Serialize());
+
+            json["y"] = JsonObject.Undefined();
+
+            Assert.AreEqual("{\"x\":1}", json.Serialize());
+
+            json["y"] = 2;
+
+            Assert.AreEqual("{\"x\":1,\"y\":2}", json.Serialize());
+
+        }
+
         private class TestClass
         {
             public string field1 = "A";

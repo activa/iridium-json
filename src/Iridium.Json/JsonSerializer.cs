@@ -131,7 +131,6 @@ namespace Iridium.Json
                     _output.AppendFormat("\"{0:yyyy-MM-ddTHH:mm:ss}\"", date.ToLocalTime());
                     break;
             }
-            
         }
 
         private void WriteJsonObject(JsonObject jsonObject)
@@ -140,33 +139,16 @@ namespace Iridium.Json
                 return;
 
             if (jsonObject.IsArray)
+            {
                 WriteArray(jsonObject.AsArray());
+            }
             else if (jsonObject.IsValue)
+            {
                 WriteValue(jsonObject.Value);
+            }
             else if (jsonObject.IsObject)
             {
-                bool sep = false;
-
-                _output.Append('{');
-
-                foreach (var field in jsonObject.Keys)
-                {
-                    if (sep)
-                        _output.Append(',');
-
-                    if (jsonObject.AsDictionary().TryGetValue(field, out var value))
-                    {
-                        WritePair(field, value);
-                    }
-                    else
-                    {
-                        WritePair(field,null);
-                    }
-
-                    sep = true;
-                }
-
-                _output.Append('}');
+                WriteDictionary(jsonObject.AsDictionary());
             }
             else
             {
@@ -244,6 +226,9 @@ namespace Iridium.Json
             {
                 if (entry.Key is string key)
                 {
+                    if (entry.Value is JsonObject jsonObject && jsonObject.IsUndefined)
+                        continue;
+
                     if (pendingSeparator)
                         _output.Append(',');
 

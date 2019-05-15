@@ -100,10 +100,7 @@ namespace Iridium.Json.Test
 
             int xChangeCount = 0;
 
-            json["obj1.x"].PropertyChanged += (sender, args) =>
-            {
-                xChangeCount++;
-            };
+            json["obj1.x"].PropertyChanged += (sender, args) => { xChangeCount++; };
             json["obj1.x"] = 3;
 
             Assert.That(notifications.Count, Is.EqualTo(2));
@@ -135,6 +132,26 @@ namespace Iridium.Json.Test
 
             ValidateTracking(json);
 
+        }
+
+        [Test]
+        public void TestTrackOnNewValue()
+        {
+            var json = CreateTestJson();
+
+            ValidateTracking(json);
+
+            int changeCount = 0;
+
+            json["xyz"].PropertyChanged += (sender, args) => { changeCount++; };
+
+            Assert.That(json["xyz"].IsUndefined);
+            Assert.That(changeCount, Is.Zero);
+
+            json["xyz"] = 123;
+
+            Assert.That(json["xyz"].Value, Is.EqualTo(123));
+            Assert.That(changeCount, Is.EqualTo(1));
         }
 
 
