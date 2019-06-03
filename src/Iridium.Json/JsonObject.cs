@@ -427,14 +427,14 @@ namespace Iridium.Json
 
         public JsonObject this[string path]
         {
-            get => FindNode(path, createIfNotExists:_trackingInfo != null);
-            set => FindNode(path, createIfNotExists:true).Set(value);
+            get => FindNode(path, false, _trackingInfo != null);
+            set => FindNode(path, true, false).Set(value);
         }
 
         public JsonObject this[int index]
         {
-            get => FindNode(index, createIfNotExists:_trackingInfo != null);
-            set => FindNode(index, createIfNotExists:true).Set(value);
+            get => FindNode(index, false, _trackingInfo != null);
+            set => FindNode(index, true, false).Set(value);
         }
 
         public void Add(string key, JsonObject value)
@@ -497,9 +497,9 @@ namespace Iridium.Json
             return false;
         }
 
-        private JsonObject FindNode(int index, bool createIfNotExists)
+        private JsonObject FindNode(int index, bool createIfNotExists, bool forTracking)
         {
-            if (createIfNotExists)
+            if (createIfNotExists || (forTracking && IsArray))
             {
                 if (!IsArray)
                     Set(EmptyArray());
@@ -534,7 +534,7 @@ namespace Iridium.Json
             }
         }
 
-        private JsonObject FindNode(string path, bool createIfNotExists)
+        private JsonObject FindNode(string path, bool createIfNotExists, bool forTracking)
         {
             if (string.IsNullOrEmpty(path))
                 return Undefined();
@@ -581,7 +581,7 @@ namespace Iridium.Json
                         AddTracking();
                 }
 
-                return this[firstKey].FindNode(path.Substring(nextIndex), createIfNotExists);
+                return this[firstKey].FindNode(path.Substring(nextIndex), createIfNotExists, forTracking);
             }
 
             if (bIndex == 0)
@@ -625,14 +625,14 @@ namespace Iridium.Json
                     return this[index];
 
                 if (path[bIndex + 1] == '.')
-                    return this[index].FindNode(path.Substring(bIndex + 2), createIfNotExists);
+                    return this[index].FindNode(path.Substring(bIndex + 2), createIfNotExists, forTracking);
                 else
-                    return this[index].FindNode(path.Substring(bIndex + 1), createIfNotExists);
+                    return this[index].FindNode(path.Substring(bIndex + 1), createIfNotExists, forTracking);
             }
 
             var returnValue = Undefined();
 
-            if (createIfNotExists)
+            if (createIfNotExists || (forTracking && IsObject))
             {
                 if (!IsObject)
                     Set(EmptyObject());
@@ -692,7 +692,6 @@ namespace Iridium.Json
                     break;
                 }
                     
-
                 case JsonObjectType.Object:
                 {
                     foreach (var kvp in AsDictionary())
@@ -723,6 +722,14 @@ namespace Iridium.Json
             var root = TrackingInfo.FindRoot();
 
             return root ?? this;
+        }
+
+        public JsonObject WithTracking()
+        {
+            if (_trackingInfo == null)
+                AddTracking();
+
+            return this;
         }
 
         public IEnumerator<JsonObject> GetEnumerator()

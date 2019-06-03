@@ -36,7 +36,7 @@ namespace Iridium.Json.Test
         }
 
         [Test]
-        public void Test1()
+        public void TestPath()
         {
             var json = CreateTestJson();
 
@@ -136,6 +136,39 @@ namespace Iridium.Json.Test
 
         [Test]
         public void TestTrackOnNewValue()
+        {
+            var json = CreateTestJson();
+
+            ValidateTracking(json);
+
+            int changeCount = 0;
+
+            Assert.That(json["objArray"].IsArray);
+            Assert.That(json["objArray.xyz"].IsUndefined);
+
+            // Setting an event handler on a field on an array should not affect the array
+            json["objArray.xyz"].PropertyChanged += (sender, args) => { changeCount++; };
+
+            Assert.That(json["objArray"].IsArray);
+            Assert.That(json["objArray"].AsArray().Length, Is.EqualTo(1));
+            Assert.That(json["objArray.xyz"].IsUndefined);
+
+            json = CreateTestJson();
+
+            ValidateTracking(json);
+
+            Assert.That(json["obj1"].IsObject);
+            Assert.That(json["obj1[0]"].IsUndefined);
+
+            // Setting an event handler on a field on an array should not affect the array
+            json["obj1[0]"].PropertyChanged += (sender, args) => { changeCount++; };
+
+            Assert.That(json["obj1"].IsObject);
+            Assert.That(json["obj1[0]"].IsUndefined);
+        }
+
+        [Test]
+        public void TestTrackOnBadType()
         {
             var json = CreateTestJson();
 
