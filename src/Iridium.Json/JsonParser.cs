@@ -125,16 +125,6 @@ namespace Iridium.Json
 
             var jsonObject = JsonObject.FromDictionary(obj);
 
-            /*
-            if (_enableTracking)
-            {
-                foreach (var pair in obj)
-                {
-                    pair.Value.ParentInfo = new JsonParentInfo(jsonObject, pair.Key);
-                }
-            }
-            */
-
             return jsonObject;
         }
 
@@ -234,18 +224,6 @@ namespace Iridium.Json
             NextToken(JsonTokenType.ArrayEnd);
 
             var jsonArray = JsonObject.FromArray(list);
-
-            /*
-            if (_enableTracking)
-            {
-                var arr = jsonArray.AsArray();
-
-                for (var i = 0; i < arr.Length; i++)
-                {
-                    arr[i].ParentInfo = new JsonParentInfo(jsonArray, i);
-                }
-            }
-            */
 
             return jsonArray;
         }
