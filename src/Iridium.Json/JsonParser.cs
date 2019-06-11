@@ -36,14 +36,14 @@ namespace Iridium.Json
 {
     public class JsonParser
     {
-        public static JsonObject Parse(string json, bool enableTracking = false)
+        public static JsonObject Parse(string json)
         {
-            return new JsonParser(json, enableTracking)._Parse();
+            return new JsonParser(json)._Parse();
         }
 
-        public static JsonObject Parse(Stream stream, bool enableTracking = false)
+        public static JsonObject Parse(Stream stream)
         {
-            return new JsonParser(stream, enableTracking)._Parse();
+            return new JsonParser(stream)._Parse();
         }
 
         public static T Parse<T>(string json) where T : class, new()
@@ -57,19 +57,16 @@ namespace Iridium.Json
         }
 
         private readonly JsonTokenizer _tokenizer;
-        private readonly bool _enableTracking = false;
         private JsonToken _currentToken;
 
-        public JsonParser(string s, bool enableTracking = false)
+        public JsonParser(string s)
         {
             _tokenizer = new JsonTokenizer(s);
-            _enableTracking = enableTracking;
         }
 
-        public JsonParser(Stream stream, bool enableTracking = false)
+        public JsonParser(Stream stream)
         {
             _tokenizer = new JsonTokenizer(stream);
-            _enableTracking = enableTracking;
         }
 
         private T _Parse<T>() where T:class
@@ -81,12 +78,7 @@ namespace Iridium.Json
         {
             NextToken();
 
-            var obj = ParseValue();
-
-            if (_enableTracking)
-                obj.AddTracking();
-
-            return obj;
+            return ParseValue();
         }
 
         private void NextToken()

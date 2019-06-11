@@ -38,6 +38,7 @@ namespace Iridium.Json
         public JsonObject ParentObject { get; private set; }
         public string ParentKey { get; private set; }
         public int? ParentIndex { get; private set; }
+        public bool Temporary { get; internal set; }
 
         public bool IsRoot => ParentObject == null;
 

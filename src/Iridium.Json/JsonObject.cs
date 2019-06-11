@@ -43,7 +43,10 @@ namespace Iridium.Json
 
         public JsonObject(object valueOrObject)
         {
-            Set(FromObject(valueOrObject, null));
+            JsonObject o = FromObject(valueOrObject);
+
+            _value = o?._value;
+            _type = o?._type ?? JsonObjectType.Undefined;
         }
 
         private JsonObject(IEnumerable<JsonObject> array)
@@ -84,13 +87,14 @@ namespace Iridium.Json
         public bool IsObject => _type == JsonObjectType.Object;
         public bool IsArray => _type == JsonObjectType.Array;
         public bool IsValue => _type == JsonObjectType.Value;
-        public bool IsUndefined => _type == JsonObjectType.Undefined;
+        public bool IsUndefined => _type == JsonObjectType.Undefined || (_trackingInfo != null && _trackingInfo.Temporary);
         public bool IsNull => _value == null && _type != JsonObjectType.Undefined;
         public bool IsNullOrUndefined => _value == null;
         public object Value => IsValue ? _value : null;
 
         public JsonTrackingInfo TrackingInfo => _trackingInfo;
         public string Path => _trackingInfo?.Key();
+        public bool IsReadOnly => _trackingInfo == null;
 
         public static JsonObject Undefined() => new JsonObject();
         public static JsonObject EmptyObject() => new JsonObject(JsonObjectType.Object);
@@ -103,11 +107,8 @@ namespace Iridium.Json
 
         private static readonly HashSet<Type> _simpleTypes = new HashSet<Type>(new[] { typeof(string),typeof(int),typeof(int?),typeof(uint),typeof(uint?),typeof(char),typeof(char?),typeof(byte),typeof(byte?),typeof(sbyte),typeof(sbyte?),typeof(short),typeof(short?),typeof(ushort),typeof(ushort?),typeof(long),typeof(long?),typeof(ulong),typeof(ulong?),typeof(decimal),typeof(decimal?),typeof(double),typeof(double?),typeof(float),typeof(float?),typeof(bool),typeof(bool?) });
 
-        private static JsonObject FromObject(object obj, Stack<object> circularStack)
+        private static JsonObject FromObject(object obj, Stack<object> circularStack = null)
         {
-            if (circularStack == null)
-                circularStack = new Stack<object>();
-
             if (obj == null)
                 return Null();
 
@@ -124,6 +125,9 @@ namespace Iridium.Json
 
             if (obj is JsonObject jsonObject)
                 return jsonObject.Clone();
+
+            if (circularStack == null)
+                circularStack = new Stack<object>();
 
             if (circularStack.Any(o => ReferenceEquals(o,obj)))
                 return Null();
@@ -416,30 +420,56 @@ namespace Iridium.Json
 
         public void Set(JsonObject o)
         {
+            if (IsReadOnly)
+                throw new Exception("JsonObject is read-only");
+
             _value = o?._value;
             _type = o?._type ?? JsonObjectType.Undefined;
 
-            if (_trackingInfo != null)
-                AddTracking();
+            ClearTemporary();
 
-            _trackingInfo?.OnValueChanged(this);
+            AddTracking();
+
+            _trackingInfo.OnValueChanged(this);
+        }
+
+        private void ClearTemporary()
+        {
+            if (TrackingInfo.IsRoot || !TrackingInfo.ParentObject.TrackingInfo.Temporary)
+                return;
+
+            JsonObject j = TrackingInfo.ParentObject;
+
+            while (j != null && j.TrackingInfo.Temporary)
+            {
+                j.TrackingInfo.Temporary = false;
+                j = j.TrackingInfo.ParentObject;
+            }
         }
 
         public JsonObject this[string path]
         {
-            get => FindNode(path, false, _trackingInfo != null);
-            set => FindNode(path, true, false).Set(value);
+            get => FindNode(path, _trackingInfo != null);
+            set => FindNode(path, _trackingInfo != null).Set(value);
         }
 
         public JsonObject this[int index]
         {
-            get => FindNode(index, false, _trackingInfo != null);
-            set => FindNode(index, true, false).Set(value);
+            get => FindNode(index, _trackingInfo != null);
+            set => FindNode(index, _trackingInfo != null).Set(value);
         }
 
         public void Add(string key, JsonObject value)
         {
-            this[key] = value;
+            if (_type == JsonObjectType.Undefined)
+            {
+                _type = JsonObjectType.Object;
+                _value = new Dictionary<string,JsonObject>();
+            }
+            else if (_type != JsonObjectType.Object)
+                throw new Exception("JsonObject.Add() called on non-object");
+
+            AsDictionary()[key] = value;
         }
 
         public bool TryGetValue(out object value, out Type type)
@@ -497,12 +527,19 @@ namespace Iridium.Json
             return false;
         }
 
-        private JsonObject FindNode(int index, bool createIfNotExists, bool forTracking)
+        private JsonObject FindNode(int index, bool createIfNotExists)
         {
-            if (createIfNotExists || (forTracking && IsArray))
+            if (createIfNotExists)
             {
+                if (!IsUndefined && !IsArray)
+                    return Undefined();
+
                 if (!IsArray)
-                    Set(EmptyArray());
+                {
+                    _type = JsonObjectType.Array;
+                    _value = new JsonObject[0];
+                    _trackingInfo.Temporary = true;
+                }
 
                 var arr = AsArray();
 
@@ -519,8 +556,7 @@ namespace Iridium.Json
 
                     _value = arr;
 
-                    if (_trackingInfo != null)
-                        AddTracking();
+                    AddTracking();
                 }
 
                 return arr[index];
@@ -534,7 +570,7 @@ namespace Iridium.Json
             }
         }
 
-        private JsonObject FindNode(string path, bool createIfNotExists, bool forTracking)
+        private JsonObject FindNode(string path, bool createIfNotExists)
         {
             if (string.IsNullOrEmpty(path))
                 return Undefined();
@@ -542,10 +578,31 @@ namespace Iridium.Json
             int dotIndex = path.IndexOf('.');
             int bIndex = path.IndexOf('[');
 
-            if (bIndex < 0 && dotIndex < 0 && IsObject)
+            if (bIndex < 0 && dotIndex < 0) // just a simple key
             {
-                if (AsDictionary().TryGetValue(path, out var value))
+                if (IsObject && AsDictionary().TryGetValue(path, out var value))
                     return value;
+
+                var returnValue = Undefined();
+
+                if (createIfNotExists)
+                {
+                    if (!IsUndefined && !IsObject)
+                        return returnValue; // we can't really solve this problem
+
+                    if (!IsObject)
+                    {
+                        _type = JsonObjectType.Object;
+                        _value = new Dictionary<string,JsonObject>();
+                        _trackingInfo.Temporary = true;
+                    }
+
+                    AsDictionary()[path] = returnValue;
+
+                    returnValue._trackingInfo = new JsonTrackingInfo(this, path);
+                }
+
+                return returnValue;
             }
 
             int nextIndex = -1;
@@ -565,23 +622,7 @@ namespace Iridium.Json
 
             if (nextIndex >= 0)
             {
-                if (createIfNotExists)
-                {
-                    if (!IsObject)
-                        Set(EmptyObject());
-
-                    var dict = AsDictionary();
-
-                    if (!dict.ContainsKey(firstKey))
-                    {
-                        dict[firstKey] = Undefined();
-                    }
-
-                    if (_trackingInfo != null)
-                        AddTracking();
-                }
-
-                return this[firstKey].FindNode(path.Substring(nextIndex), createIfNotExists, forTracking);
+                return FindNode(firstKey, createIfNotExists).FindNode(path.Substring(nextIndex), createIfNotExists);
             }
 
             if (bIndex == 0)
@@ -596,54 +637,16 @@ namespace Iridium.Json
                 if (index < 0)
                     return Undefined();
 
-                if (createIfNotExists)
-                {
-                    if (!IsArray)
-                        Set(EmptyArray());
-
-                    var arr = AsArray();
-
-                    if (index >= arr.Length)
-                    {
-                        int oldLength = arr.Length;
-
-                        Array.Resize(ref arr,index+1);
-
-                        for (int i = oldLength; i <= index; i++)
-                        {
-                            arr[i] = Undefined();
-                        }
-
-                        _value = arr;
-
-                        if (_trackingInfo != null)
-                            AddTracking();
-                    }
-                }
-
                 if (bIndex + 1 >= path.Length)
-                    return this[index];
+                    return FindNode(index, createIfNotExists);
 
                 if (path[bIndex + 1] == '.')
-                    return this[index].FindNode(path.Substring(bIndex + 2), createIfNotExists, forTracking);
+                    return FindNode(index, createIfNotExists).FindNode(path.Substring(bIndex + 2), createIfNotExists);
                 else
-                    return this[index].FindNode(path.Substring(bIndex + 1), createIfNotExists, forTracking);
+                    return FindNode(index, createIfNotExists).FindNode(path.Substring(bIndex + 1), createIfNotExists);
             }
 
-            var returnValue = Undefined();
-
-            if (createIfNotExists || (forTracking && IsObject))
-            {
-                if (!IsObject)
-                    Set(EmptyObject());
-
-                AsDictionary()[path] = returnValue;
-
-                if (_trackingInfo != null)
-                    AddTracking();
-            }
-
-            return returnValue;
+            return Undefined();
         }
 
         public void FillObject(object obj)
@@ -669,7 +672,7 @@ namespace Iridium.Json
             }
         }
 
-        public void AddTracking()
+        private void AddTracking()
         {
             switch (_type)
             {
@@ -716,20 +719,25 @@ namespace Iridium.Json
 
         public JsonObject FindRoot()
         {
-            if (TrackingInfo == null)
+            if (_trackingInfo == null)
                 return null;
 
-            var root = TrackingInfo.FindRoot();
+            var root = _trackingInfo.FindRoot();
 
             return root ?? this;
         }
 
-        public JsonObject WithTracking()
+        public JsonObject MakeWritable()
         {
             if (_trackingInfo == null)
                 AddTracking();
 
             return this;
+        }
+
+        public JsonObject MakeWritableClone()
+        {
+            return Clone().MakeWritable();
         }
 
         public IEnumerator<JsonObject> GetEnumerator()

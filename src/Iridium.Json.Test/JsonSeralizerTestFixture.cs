@@ -69,11 +69,11 @@ namespace Iridium.Json.Test
         [Test]
         public void TestObjectWithUndefined()
         {
-            var json = new JsonObject(new { x = 1});
+            var json = new JsonObject(new { x = 1}).MakeWritable();
 
             Assert.AreEqual("{\"x\":1}", json.Serialize());
 
-            json["y"] = JsonObject.Undefined();
+            json["y"] = JsonObject.Undefined().MakeWritable();
 
             Assert.AreEqual("{\"x\":1}", json.Serialize());
 

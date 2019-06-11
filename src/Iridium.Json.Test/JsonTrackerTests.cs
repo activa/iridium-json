@@ -26,9 +26,7 @@ namespace Iridium.Json.Test
 
             };
 
-
-
-            var json = JsonParser.Parse(JsonSerializer.ToJson(obj), enableTracking:true);
+            var json = JsonParser.Parse(JsonSerializer.ToJson(obj)).MakeWritable();
 
             ValidateTracking(json);
 
@@ -52,7 +50,7 @@ namespace Iridium.Json.Test
         {
             var json = CreateTestJson();
 
-            json.AddTracking();
+            json.MakeWritable();
 
             HashSet<string> valuesTriggered = new HashSet<string>();
 
@@ -167,6 +165,80 @@ namespace Iridium.Json.Test
             Assert.That(json["obj1[0]"].IsUndefined);
         }
 
+
+        [Test]
+        public void TestTrackOnDeepNewValue1()
+        {
+            var json = CreateTestJson();
+
+            ValidateTracking(json);
+
+            int changeCountObj2 = 0;
+            int changeCountObj3 = 0;
+
+            json["obj1"]["obj2"].PropertyChanged += (s, a) => changeCountObj2++;
+
+            json["obj1.obj2"] = 123;
+
+            Assert.That(json["obj1"]["obj2"].As<int>(), Is.EqualTo(123));
+            Assert.That(changeCountObj2, Is.EqualTo(1));
+
+            ValidateTracking(json);
+        }
+
+        [Test]
+        public void TestTrackOnDeepNewValue2()
+        {
+            var json = CreateTestJson();
+
+            ValidateTracking(json);
+
+            int changeCountObj2 = 0;
+            int changeCountObj3 = 0;
+
+            json["obj1"]["obj2"]["obj3"].PropertyChanged += (s, a) => changeCountObj3++;
+
+            json["obj1.obj2.obj3"] = 123;
+
+            Assert.That(json["obj1.obj2"].IsObject);
+            Assert.That(json["obj1"]["obj2"]["obj3"].As<int>(), Is.EqualTo(123));
+            Assert.That(changeCountObj3, Is.EqualTo(1));
+
+            ValidateTracking(json);
+        }
+
+        [Test]
+        public void TestTrackOnDeepNewValue3()
+        {
+            var json = CreateTestJson();
+
+            ValidateTracking(json);
+
+            int changeCountObj2 = 0;
+            int changeCountObj3 = 0;
+
+            var jObj2 = json["obj1"]["obj2"];
+            var jObj3 = jObj2["obj3"];
+
+            jObj3.PropertyChanged += (s, a) => changeCountObj3++;
+
+            Assert.That(json["obj1"].TrackingInfo.Temporary, Is.False);
+            Assert.That(json["obj1.obj2"].TrackingInfo.Temporary, Is.True);
+
+
+            jObj2["obj3"] = 123;
+            
+            Assert.That(json["obj1.obj2"].IsObject);
+            Assert.That(jObj2.IsObject);
+            Assert.That(json["obj1"]["obj2"]["obj3"].As<int>(), Is.EqualTo(123));
+            Assert.That(jObj3.As<int>(), Is.EqualTo(123));
+            Assert.That(jObj2["obj3"].As<int>(), Is.EqualTo(123));
+            Assert.That(changeCountObj3, Is.EqualTo(1));
+
+            ValidateTracking(json);
+        }
+
+
         [Test]
         public void TestTrackOnBadType()
         {
@@ -193,7 +265,7 @@ namespace Iridium.Json.Test
         {
             string jsonText = @"{""x"":1}";
 
-            var json = JsonParser.Parse(jsonText, true);
+            var json = JsonParser.Parse(jsonText).MakeWritable();
 
             Assert.That(json.TrackingInfo, Is.Not.Null);
             Assert.That(json.TrackingInfo.ParentObject, Is.Null);
@@ -202,7 +274,7 @@ namespace Iridium.Json.Test
             Assert.That(json["x"].TrackingInfo.ParentKey, Is.EqualTo("x"));
             Assert.That(json["x"].TrackingInfo.ParentIndex, Is.Null);
 
-            json = JsonParser.Parse(jsonText, false);
+            json = JsonParser.Parse(jsonText);
 
             Assert.That(json.TrackingInfo, Is.Null);
             Assert.That(json["x"].TrackingInfo, Is.Null);
@@ -213,7 +285,7 @@ namespace Iridium.Json.Test
         {
             string jsonText = @"{""x"":[1,2,3]}";
 
-            var json = JsonParser.Parse(jsonText, true);
+            var json = JsonParser.Parse(jsonText).MakeWritable();
             
             ValidateTracking(json);
 

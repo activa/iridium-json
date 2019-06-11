@@ -376,6 +376,8 @@ namespace Iridium.Json.Test
             Assert.That((int)obj["subObject2.subObjectIntArray.value1[1]"], Is.EqualTo(2));
             Assert.That((int)obj["subObject2.subObjectIntArray.value2[1]"], Is.EqualTo(22));
 
+            obj.MakeWritable();
+
             obj["string1"] = 1;
 
             Assert.That((int)obj["string1"], Is.EqualTo(1));
@@ -384,7 +386,7 @@ namespace Iridium.Json.Test
         [Test]
         public void TestDeepSet()
         {
-            var obj = JsonObject.EmptyObject();
+            var obj = JsonObject.EmptyObject().MakeWritable();
 
             Assert.That(obj["value1"].IsUndefined);
 
@@ -392,7 +394,7 @@ namespace Iridium.Json.Test
 
             Assert.That((int) obj["value1"], Is.EqualTo(123));
 
-            obj = new JsonObject();
+            obj = new JsonObject().MakeWritable();
 
             Assert.That(obj["value1"].IsUndefined);
 
@@ -401,7 +403,7 @@ namespace Iridium.Json.Test
             Assert.That((int) obj["value1"], Is.EqualTo(123));
 
 
-            obj = JsonObject.EmptyObject();
+            obj = JsonObject.EmptyObject().MakeWritable();
 
             Assert.That(obj["value1.value2"].IsUndefined);
 
@@ -410,25 +412,7 @@ namespace Iridium.Json.Test
             Assert.That((int) obj["value1.value2"], Is.EqualTo(123));
             Assert.That((int) obj["value1"]["value2"], Is.EqualTo(123));
 
-            obj = JsonParser.Parse("{\"value1\":123}");
-
-            Assert.That((int)obj["value1"],Is.EqualTo(123));
-
-            obj["value1"]["value2"] = 123;
-
-            Assert.That(obj["value1"].IsObject);
-
-            Assert.That((int) obj["value1.value2"], Is.EqualTo(123));
-            Assert.That((int) obj["value1"]["value2"], Is.EqualTo(123));
-
-            obj["value1"]["value3"] = 456;
-
-            Assert.That((int) obj["value1.value3"], Is.EqualTo(456));
-            Assert.That((int) obj["value1"]["value3"], Is.EqualTo(456));
-            Assert.That((int) obj["value1.value2"], Is.EqualTo(123));
-            Assert.That((int) obj["value1"]["value2"], Is.EqualTo(123));
-
-            obj = new JsonObject();
+            obj = new JsonObject().MakeWritable();
 
             Assert.That(obj["value1"].IsUndefined);
             Assert.That(obj["value1.value2"].IsUndefined);
@@ -449,7 +433,7 @@ namespace Iridium.Json.Test
         [Test]
         public void TestArraySetWithPath()
         {
-            var obj = new JsonObject();
+            var obj = new JsonObject().MakeWritable();
 
             Assert.That(obj["value1"].IsUndefined);
             Assert.That(obj.IsUndefined);
@@ -474,7 +458,7 @@ namespace Iridium.Json.Test
             Assert.That((int)obj["value1[0]"], Is.EqualTo(123));
             Assert.That((int)obj["value1[10]"], Is.EqualTo(456));
 
-            obj = new JsonObject();
+            obj = new JsonObject().MakeWritable();
 
             Assert.That(obj["value1"].IsUndefined);
 
@@ -490,7 +474,7 @@ namespace Iridium.Json.Test
         [Test]
         public void TestArraySetDirect()
         {
-            var obj = new JsonObject();
+            var obj = new JsonObject().MakeWritable();
 
             Assert.That(obj["value1"].IsUndefined);
             Assert.That(obj.IsUndefined);
@@ -517,7 +501,7 @@ namespace Iridium.Json.Test
             Assert.That((int)obj["value1[0]"], Is.EqualTo(123));
             Assert.That((int)obj["value1[10]"], Is.EqualTo(456));
 
-            obj = new JsonObject();
+            obj = new JsonObject().MakeWritable();
 
             Assert.That(obj["value1"].IsUndefined);
 
@@ -535,7 +519,7 @@ namespace Iridium.Json.Test
         [Test]
         public void TestArrayDeepSet()
         {
-            var obj = JsonObject.Undefined();
+            var obj = JsonObject.Undefined().MakeWritable();
 
             obj["value1[0].value2"] = 123;
 
@@ -553,7 +537,7 @@ namespace Iridium.Json.Test
             Assert.That((int)obj["value1[0].value2"], Is.EqualTo(123));
             Assert.That((int)obj["value1[10].value2"], Is.EqualTo(456));
 
-            obj = JsonObject.Undefined();
+            obj = JsonObject.Undefined().MakeWritable();
 
             obj["value1[0][0]"] = 123;
 
@@ -571,8 +555,10 @@ namespace Iridium.Json.Test
         {
             JsonObject obj = new JsonObject
             {
-                ["value"] = new[] {1, 2, 3}
+                { "value", new[] {1, 2, 3}}
             };
+
+            obj.MakeWritable();
 
             Assert.That(obj["value"].IsArray);
 
@@ -584,7 +570,7 @@ namespace Iridium.Json.Test
         [Test]
         public void TestSetWithJsonObject()
         {
-            JsonObject obj = JsonObject.Undefined();
+            JsonObject obj = JsonObject.Undefined().MakeWritable();
 
             obj["value"] = JsonParser.Parse("{\"value2\":123}");
 
