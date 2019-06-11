@@ -38,6 +38,8 @@ namespace Iridium.Json.Test
         {
             var json = JsonParser.Parse(_testJson);
 
+            json.ValidateReadOnly();
+
             var jsonText = JsonSerializer.ToJson(json);
 
             var json2 = JsonParser.Parse(jsonText);

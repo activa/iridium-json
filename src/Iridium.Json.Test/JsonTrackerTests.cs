@@ -9,7 +9,8 @@ namespace Iridium.Json.Test
     public class JsonTrackerTests
     {
         private JsonObject CreateTestJson()
-        {            var obj = new
+        {            
+            var obj = new
             {
                 int1 = 123,
                 string1 = "ABC",
@@ -28,11 +29,24 @@ namespace Iridium.Json.Test
 
             var json = JsonParser.Parse(JsonSerializer.ToJson(obj)).MakeWritable();
 
-            ValidateTracking(json);
+            json.ValidateTracking();
 
             return json;
         }
 
+        [Test]
+        public void MakeReadOnly()
+        {
+            var json = CreateTestJson();
+
+            json.ValidateTracking();
+
+            var readOnlyClone = json.MakeReadOnlyClone();
+
+            readOnlyClone.ValidateReadOnly();
+        }
+
+        
         [Test]
         public void TestPath()
         {
@@ -49,8 +63,6 @@ namespace Iridium.Json.Test
         public void TestNotify()
         {
             var json = CreateTestJson();
-
-            json.MakeWritable();
 
             HashSet<string> valuesTriggered = new HashSet<string>();
 
@@ -104,7 +116,7 @@ namespace Iridium.Json.Test
             Assert.That(notifications.Count, Is.EqualTo(2));
             Assert.That(xChangeCount, Is.EqualTo(1));
 
-            ValidateTracking(json);
+            json.ValidateTracking();
         }
 
         [Test]
@@ -112,23 +124,23 @@ namespace Iridium.Json.Test
         {
             var json = CreateTestJson();
 
-            ValidateTracking(json);
+            json.ValidateTracking();
             
             json["test[0].test1[0].test"] = "x";
 
-            ValidateTracking(json);
+            json.ValidateTracking();
 
             json["intArr1"] = new[] {11, 22, 33};
 
-            ValidateTracking(json);
+            json.ValidateTracking();
 
             json["x"] = new[] {11, 22, 33};
 
-            ValidateTracking(json);
+            json.ValidateTracking();
 
             json["z.y[6]"] = 5;
 
-            ValidateTracking(json);
+            json.ValidateTracking();
 
         }
 
@@ -137,7 +149,7 @@ namespace Iridium.Json.Test
         {
             var json = CreateTestJson();
 
-            ValidateTracking(json);
+            json.ValidateTracking();
 
             int changeCount = 0;
 
@@ -153,7 +165,7 @@ namespace Iridium.Json.Test
 
             json = CreateTestJson();
 
-            ValidateTracking(json);
+            json.ValidateTracking();
 
             Assert.That(json["obj1"].IsObject);
             Assert.That(json["obj1[0]"].IsUndefined);
@@ -171,7 +183,7 @@ namespace Iridium.Json.Test
         {
             var json = CreateTestJson();
 
-            ValidateTracking(json);
+            json.ValidateTracking();
 
             int changeCountObj2 = 0;
             int changeCountObj3 = 0;
@@ -183,7 +195,7 @@ namespace Iridium.Json.Test
             Assert.That(json["obj1"]["obj2"].As<int>(), Is.EqualTo(123));
             Assert.That(changeCountObj2, Is.EqualTo(1));
 
-            ValidateTracking(json);
+            json.ValidateTracking();
         }
 
         [Test]
@@ -191,7 +203,7 @@ namespace Iridium.Json.Test
         {
             var json = CreateTestJson();
 
-            ValidateTracking(json);
+            json.ValidateTracking();
 
             int changeCountObj2 = 0;
             int changeCountObj3 = 0;
@@ -204,7 +216,7 @@ namespace Iridium.Json.Test
             Assert.That(json["obj1"]["obj2"]["obj3"].As<int>(), Is.EqualTo(123));
             Assert.That(changeCountObj3, Is.EqualTo(1));
 
-            ValidateTracking(json);
+            json.ValidateTracking();
         }
 
         [Test]
@@ -212,7 +224,7 @@ namespace Iridium.Json.Test
         {
             var json = CreateTestJson();
 
-            ValidateTracking(json);
+            json.ValidateTracking();
 
             int changeCountObj2 = 0;
             int changeCountObj3 = 0;
@@ -235,7 +247,7 @@ namespace Iridium.Json.Test
             Assert.That(jObj2["obj3"].As<int>(), Is.EqualTo(123));
             Assert.That(changeCountObj3, Is.EqualTo(1));
 
-            ValidateTracking(json);
+            json.ValidateTracking();
         }
 
 
@@ -244,7 +256,7 @@ namespace Iridium.Json.Test
         {
             var json = CreateTestJson();
 
-            ValidateTracking(json);
+            json.ValidateTracking();
 
             int changeCount = 0;
 
@@ -286,8 +298,8 @@ namespace Iridium.Json.Test
             string jsonText = @"{""x"":[1,2,3]}";
 
             var json = JsonParser.Parse(jsonText).MakeWritable();
-            
-            ValidateTracking(json);
+
+            json.ValidateTracking();
 
             Assert.That(json.TrackingInfo, Is.Not.Null);
             Assert.That(json.TrackingInfo.ParentObject, Is.Null);
@@ -304,50 +316,6 @@ namespace Iridium.Json.Test
             Assert.That(jX[1].TrackingInfo.ParentIndex, Is.EqualTo(1));
             Assert.That(jX[2].TrackingInfo.ParentObject, Is.SameAs(jX));
             Assert.That(jX[2].TrackingInfo.ParentIndex, Is.EqualTo(2));
-        }
-
-        private void ValidateTracking(JsonObject obj)
-        {
-            Assert.That(obj.TrackingInfo, Is.Not.Null);
-
-            Assert.That(obj.FindRoot(), Is.SameAs(obj));
-
-            void validate(JsonObject o)
-            {
-                if (!o.TrackingInfo.IsRoot)
-                {
-                    Assert.That(obj[o.Path], Is.SameAs(o));
-                }
-
-                Assert.That(o.FindRoot(), Is.SameAs(obj));
-
-                if (o.IsObject)
-                {
-                    foreach (var item in o.AsDictionary())
-                    {
-                        Assert.That(item.Value.TrackingInfo, Is.Not.Null, "Object dictionary item has no tracking info");
-                        Assert.That(item.Value.TrackingInfo.ParentObject, Is.SameAs(o));
-                        Assert.That(item.Value.TrackingInfo.ParentKey, Is.EqualTo(item.Key));
-
-                        validate(item.Value);
-                    }
-                }
-                else if (o.IsArray)
-                {
-                    var arr = o.AsArray();
-
-                    for (int i = 0; i < arr.Length; i++)
-                    {
-                        Assert.That(arr[i].TrackingInfo, Is.Not.Null, "Array item has no tracking info");
-                        Assert.That(arr[i].TrackingInfo.ParentObject, Is.SameAs(o));
-                        Assert.That(arr[i].TrackingInfo.ParentIndex, Is.EqualTo(i));
-
-                        validate(arr[i]);
-                    }
-                }
-            }
-
-            validate(obj);
         }
     }
 }

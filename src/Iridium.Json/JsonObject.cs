@@ -57,7 +57,7 @@ namespace Iridium.Json
             _value = o?._value;
             _type = o?._type ?? JsonObjectType.Undefined;
 
-            _trackingInfo = new JsonTrackingInfo(null);
+            UpdateTracking();
         }
 
         private JsonObject(IEnumerable<JsonObject> array)
@@ -680,7 +680,7 @@ namespace Iridium.Json
             }
         }
 
-        private void UpdateTracking()
+        private void UpdateTracking(bool remove = false)
         {
             switch (_type)
             {
@@ -692,12 +692,15 @@ namespace Iridium.Json
                     {
                         var o = arr[i];
 
-                        if (o._trackingInfo == null)
-                            o._trackingInfo = new JsonTrackingInfo(this, i);
-                        else
-                            o._trackingInfo.Update(this,i);
+                        if (!remove)
+                        {
+                            if (o._trackingInfo == null)
+                                o._trackingInfo = new JsonTrackingInfo(this, i);
+                            else
+                                o._trackingInfo.Update(this,i);
+                        }
 
-                        o.UpdateTracking();
+                        o.UpdateTracking(remove);
                     }
 
                     break;
@@ -709,20 +712,29 @@ namespace Iridium.Json
                     {
                         var o = kvp.Value;
 
-                        if (o._trackingInfo == null)
-                            o._trackingInfo = new JsonTrackingInfo(this, kvp.Key);
-                        else
-                            o._trackingInfo.Update(this, kvp.Key);
+                        if (!remove)
+                        {
+                            if (o._trackingInfo == null)
+                                o._trackingInfo = new JsonTrackingInfo(this, kvp.Key);
+                            else
+                                o._trackingInfo.Update(this, kvp.Key);
+                        }
 
-                        o.UpdateTracking();
+                        o.UpdateTracking(remove);
                     }
 
                     break;
                 }
             }
 
-            if (_trackingInfo == null)
+            if (_trackingInfo == null && !remove)
+            {
                 _trackingInfo = new JsonTrackingInfo(null);
+            }
+            else if (_trackingInfo != null && remove)
+            {
+                _trackingInfo = null;
+            }
         }
 
         public JsonObject FindRoot()
@@ -746,6 +758,18 @@ namespace Iridium.Json
         public JsonObject MakeWritableClone()
         {
             return Clone().MakeWritable();
+        }
+
+        public JsonObject MakeReadOnly()
+        {
+            UpdateTracking(true);
+
+            return this;
+        }
+
+        public JsonObject MakeReadOnlyClone()
+        {
+            return Clone();
         }
 
         public IEnumerator<JsonObject> GetEnumerator()

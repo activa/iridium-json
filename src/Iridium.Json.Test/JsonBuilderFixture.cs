@@ -27,6 +27,8 @@ namespace Iridium.Json.Test
                                 }
                 }
             };
+
+            _json.ValidateTracking();
         }
 
         [Test]
@@ -89,6 +91,9 @@ namespace Iridium.Json.Test
             };
 
             JsonObject json = new JsonObject(o);
+
+            json.ValidateTracking();
+            json["objectValue"].ValidateTracking(true);
 
             Assert.That(json.IsObject);
 
