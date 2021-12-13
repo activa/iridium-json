@@ -195,6 +195,79 @@ namespace Iridium.Json.Test
             string json = JsonSerializer.ToJson(obj1);
 
             Assert.AreEqual("{\"Id\":\"A\",\"Children\":[{\"Id\":\"A1\",\"Parent\":null,\"Others\":[null,{\"Id\":\"B\",\"Children\":null}]}]}",json);
+
+            json = JsonSerializer.ToJson(obj1, true);
+        }
+
+        [Test]
+        public void TestPrettyPrint()
+        {
+            string sourceJson = @"{
+    ""firstName"": ""Rack"",
+    ""lastName"": ""Jackon"",
+    ""gender"": ""man"",
+    ""age"": 24,
+    ""someNumbers"": [5,6,7],
+    ""someNumbersAndOneObject"": [5,6,7, {}],
+    ""manyNumbers"": [5,6,7,8,9,10,11],
+    ""address"": {
+        ""streetAddress"": ""126"",
+        ""city"": ""San Jone"",
+        ""state"": ""CA"",
+        ""postalCode"": ""394221""
+    },
+    ""phoneNumbers"": [
+        { ""type"": ""home"", ""number"": ""7383627627"" },
+        { ""type"": ""cell"", ""number"": ""7383627626"" }
+    ]
+}";
+
+            var jsonObject = JsonParser.Parse(sourceJson);
+
+            var output = JsonSerializer.ToJson(jsonObject, true);
+
+
+            string expected = @"{
+    ""firstName"": ""Rack"",
+    ""lastName"": ""Jackon"",
+    ""gender"": ""man"",
+    ""age"": 24,
+    ""someNumbers"": [5,6,7],
+    ""someNumbersAndOneObject"": [
+        5,
+        6,
+        7,
+        {}
+    ],
+    ""manyNumbers"": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+    ],
+    ""address"": {
+        ""streetAddress"": ""126"",
+        ""city"": ""San Jone"",
+        ""state"": ""CA"",
+        ""postalCode"": ""394221""
+    },
+    ""phoneNumbers"": [
+        {
+            ""type"": ""home"",
+            ""number"": ""7383627627""
+        },
+        {
+            ""type"": ""cell"",
+            ""number"": ""7383627626""
+        }
+    ]
+}";
+
+            Assert.That(output, Is.EqualTo(expected));
+
         }
 
         private class json_ParentClass

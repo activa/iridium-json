@@ -49,15 +49,39 @@ namespace Iridium.Json
         private readonly StringBuilder _output = new StringBuilder();
         private readonly JsonDateFormat _dateFormat;
         private readonly Stack<object> _circularStack = new Stack<object>();
+        private readonly bool _pretty = false;
+        private int _indentLevel = 0;
 
         private JsonSerializer()
         {
             _dateFormat = JsonDateFormat.UtcISO;
         }
 
+        private JsonSerializer(bool pretty)
+        {
+            _dateFormat = JsonDateFormat.UtcISO;
+            _pretty = pretty;
+        }
+
         private JsonSerializer(JsonDateFormat dateFormat)
         {
             _dateFormat = dateFormat;
+        }
+
+        private JsonSerializer(JsonDateFormat dateFormat, bool pretty)
+        {
+            _dateFormat = dateFormat;
+            _pretty = pretty;
+        }
+
+        public static string ToJson(object obj, bool pretty)
+        {
+            return new JsonSerializer(pretty).ConvertToJson(obj);
+        }
+
+        public static string ToJson(object obj, JsonDateFormat dateFormat, bool pretty)
+        {
+            return new JsonSerializer(dateFormat, pretty).ConvertToJson(obj);
         }
 
         public static string ToJson(object obj,JsonDateFormat dateFormat)
@@ -166,6 +190,8 @@ namespace Iridium.Json
 
             _circularStack.Push(obj);
 
+            _indentLevel++;
+
             _output.Append('{');
 
             bool pendingSeparator = false;
@@ -178,12 +204,21 @@ namespace Iridium.Json
                 if (pendingSeparator)
                     _output.Append(',');
 
+                if (_pretty)
+                    NewLine();
+
                 WritePair(fieldInfo.Name, fieldInfo.GetValue(obj));
 
                 pendingSeparator = true;
             }
 
+            _indentLevel--;
+
+            if (_pretty)
+                NewLine();
+
             _output.Append('}');
+
 
             _circularStack.Pop();
         }
@@ -192,13 +227,19 @@ namespace Iridium.Json
         {
             WriteString(name);
 
-            _output.Append(':');
+            if (_pretty)
+                _output.Append(": ");
+            else
+                _output.Append(':');
 
             WriteValue(value);
         }
 
         private void WriteArray(IEnumerable array)
         {
+            _indentLevel++;
+            bool singleLine = _pretty && array is JsonObject[] ar && ar.Length <= 5 && ar.All(_ => _.IsValue);
+
             _output.Append('[');
 
             bool pendingSeparator = false;
@@ -208,16 +249,28 @@ namespace Iridium.Json
                 if (pendingSeparator)
                     _output.Append(',');
 
+                if (_pretty && !singleLine)
+                    NewLine();
+
                 WriteValue(obj);
 
                 pendingSeparator = true;
             }
+
+            _indentLevel--;
+
+            if (_pretty && !singleLine)
+                NewLine();
 
             _output.Append(']');
         }
 
         private void WriteDictionary(IDictionary dic)
         {
+            _indentLevel++;
+
+            bool singleLine = _pretty && dic.Keys.Count == 0;
+
             _output.Append('{');
 
             bool pendingSeparator = false;
@@ -232,11 +285,19 @@ namespace Iridium.Json
                     if (pendingSeparator)
                         _output.Append(',');
 
+                    if (_pretty && !singleLine)
+                        NewLine();
+
                     WritePair(key, entry.Value);
 
                     pendingSeparator = true;
                 }
             }
+
+            _indentLevel--;
+
+            if (_pretty && !singleLine)
+                NewLine();
 
             _output.Append('}');
         }
@@ -278,6 +339,11 @@ namespace Iridium.Json
             }
 
             _output.Append('\"');
+        }
+
+        private void NewLine()
+        {
+            _output.Append(Environment.NewLine + new string(' ', _indentLevel * 4));
         }
     }
 }

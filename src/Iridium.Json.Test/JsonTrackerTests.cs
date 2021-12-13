@@ -317,5 +317,19 @@ namespace Iridium.Json.Test
             Assert.That(jX[2].TrackingInfo.ParentObject, Is.SameAs(jX));
             Assert.That(jX[2].TrackingInfo.ParentIndex, Is.EqualTo(2));
         }
+
+        [Test]
+        public void TestSetNewValue()
+        {
+            JsonObject json = JsonObject.EmptyObject().MakeWritable();
+
+            Assert.That(json["x"].IsUndefined, Is.True);
+            Assert.That(json["x.y"].IsUndefined, Is.True);
+
+            json["x"] = 1;
+
+            Assert.That(json["x"].IsUndefined, Is.False);
+            Assert.That((int)json["x"], Is.EqualTo(1));
+        }
     }
 }

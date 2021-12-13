@@ -439,6 +439,8 @@ namespace Iridium.Json
 
         private void ClearTemporary()
         {
+            TrackingInfo.Temporary = false;
+
             if (TrackingInfo.IsRoot || !TrackingInfo.ParentObject.TrackingInfo.Temporary)
                 return;
 

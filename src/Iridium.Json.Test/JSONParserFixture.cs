@@ -172,12 +172,13 @@ namespace Iridium.Json.Test
         [Test]
         public void Escapes()
         {
-            JsonObject obj = JsonParser.Parse(@"{ ""s1"" : ""\n"", ""s2"" : ""\t"", ""s3"" : ""\\"" , ""s4"" : ""\u00aa"" }");
+            JsonObject obj = JsonParser.Parse(@"{ ""s1"" : ""\n"", ""s2"" : ""\t"", ""s3"" : ""\\"" , ""s4"" : ""\u00aa"", ""s5"":""\"""" }");
 
             Assert.That((string) obj["s1"], Is.EqualTo("\n"));
             Assert.That((string) obj["s2"], Is.EqualTo("\t"));
             Assert.That((string) obj["s3"], Is.EqualTo("\\"));
             Assert.That((string) obj["s4"], Is.EqualTo("\u00aa"));
+            Assert.That((string)obj["s5"], Is.EqualTo("\""));
         }
 
         [Test]
